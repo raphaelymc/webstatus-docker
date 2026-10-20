@@ -1,0 +1,335 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>WebStatus | Monitoramento DevOps</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #0f172a;
+            color: #f8fafc;
+            font-family: Arial, sans-serif;
+            padding: 30px 20px;
+        }
+
+        .container {
+            max-width: 950px;
+            margin: auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .subtitulo {
+            color: #94a3b8;
+        }
+
+        .painel {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .titulo-painel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .status {
+            color: #facc15;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .card {
+            background: #0f172a;
+            padding: 22px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .card h3 {
+            color: #94a3b8;
+            font-size: 14px;
+            font-weight: normal;
+        }
+
+        .valor {
+            font-size: 25px;
+            font-weight: bold;
+            margin-top: 12px;
+            color: #38bdf8;
+        }
+
+        button {
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 13px 25px;
+            font-size: 15px;
+            cursor: pointer;
+            margin-top: 25px;
+        }
+
+        button:hover {
+            background: #0284c7;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        .historico {
+            list-style: none;
+            padding: 0;
+        }
+
+        .historico li {
+            padding: 12px;
+            border-bottom: 1px solid #334155;
+            color: #cbd5e1;
+        }
+
+        .informacao {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 13px;
+            margin-top: 20px;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 35px;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        @media (max-width: 600px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <header>
+        <h1>WebStatus</h1>
+        <p class="subtitulo">
+            Painel de Monitoramento | Docker + Apache
+        </p>
+    </header>
+
+    <section class="painel">
+
+        <div class="titulo-painel">
+            <h2>Servidor Apache</h2>
+            <span class="status" id="status">
+                Aguardando verificação
+            </span>
+        </div>
+
+        <p class="subtitulo">
+            Serviço: Apache HTTP Server
+        </p>
+
+        <div class="grid">
+
+            <div class="card">
+                <h3>Status HTTP</h3>
+                <div class="valor" id="http">--</div>
+            </div>
+
+            <div class="card">
+                <h3>Tempo de resposta</h3>
+                <div class="valor" id="tempo">--</div>
+            </div>
+
+            <div class="card">
+                <h3>Última verificação</h3>
+                <div class="valor" id="horario">--</div>
+            </div>
+
+            <div class="card">
+                <h3>Disponibilidade da sessão</h3>
+                <div class="valor" id="disponibilidade">--</div>
+            </div>
+
+        </div>
+
+        <div style="text-align:center">
+            <button id="botao">
+                Verificar servidor
+            </button>
+        </div>
+
+        <p class="informacao">
+            Atualização automática a cada 30 segundos
+        </p>
+
+    </section>
+
+    <section class="painel">
+
+        <h2>Histórico de verificações</h2>
+
+        <p class="subtitulo">
+            Últimas 5 verificações realizadas
+        </p>
+
+        <ul class="historico" id="historico">
+            <li>Nenhuma verificação realizada.</li>
+        </ul>
+
+    </section>
+
+    <footer>
+        WebStatus 1.1 | Projeto DevOps
+        <p>Docker Compose • Apache • HTML • JavaScript</p>
+    </footer>
+
+</div>
+
+<script>
+
+    let totalTestes = 0;
+    let testesSucesso = 0;
+    let registros = [];
+    let verificando = false;
+
+    async function verificar() {
+
+        if (verificando) return;
+
+        verificando = true;
+
+        const botao = document.getElementById("botao");
+        const status = document.getElementById("status");
+
+        botao.disabled = true;
+        status.textContent = "VERIFICANDO...";
+        status.style.color = "#facc15";
+
+        const inicio = performance.now();
+        let resultado = "INDISPONÍVEL";
+        let codigoHTTP = "--";
+        let tempoResposta = "--";
+
+        try {
+
+            const resposta = await fetch("/", {
+                method: "HEAD",
+                cache: "no-store"
+            });
+
+            const tempo = Math.round(
+                performance.now() - inicio
+            );
+
+            tempoResposta = tempo + " ms";
+            codigoHTTP = resposta.status;
+
+            if (resposta.ok) {
+                resultado = "ONLINE";
+                testesSucesso++;
+            }
+
+        } catch (erro) {
+
+            console.error("Erro na verificação:", erro);
+
+        }
+
+        totalTestes++;
+
+        const horario = new Date().toLocaleTimeString("pt-BR");
+
+        const disponibilidade = (
+            (testesSucesso / totalTestes) * 100
+        ).toFixed(1);
+
+        status.textContent = resultado;
+
+        status.style.color =
+            resultado === "ONLINE" ? "#4ade80" : "#f87171";
+
+        document.getElementById("http").textContent =
+            codigoHTTP;
+
+        document.getElementById("tempo").textContent =
+            tempoResposta;
+
+        document.getElementById("horario").textContent =
+            horario;
+
+        document.getElementById("disponibilidade").textContent =
+            disponibilidade + "%";
+
+        registros.unshift(
+            horario + " | " + resultado +
+            " | HTTP: " + codigoHTTP
+        );
+
+        registros = registros.slice(0, 5);
+
+        const lista = document.getElementById("historico");
+
+        lista.innerHTML = "";
+
+        registros.forEach(function(registro) {
+
+            const item = document.createElement("li");
+
+            item.textContent = registro;
+
+            lista.appendChild(item);
+
+        });
+
+        verificando = false;
+        botao.disabled = false;
+    }
+
+    document.getElementById("botao")
+        .addEventListener("click", verificar);
+
+    verificar();
+
+    setInterval(verificar, 30000);
+
+</script>
+
+</body>
+</html>

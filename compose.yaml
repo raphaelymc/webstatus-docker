@@ -1,0 +1,9 @@
+services:
+  web:
+    image: httpd:2.4
+    container_name: webstatus-apache
+    ports:
+      - "8080:80"
+    volumes:
+      - ./site:/usr/local/apache2/htdocs/:ro
+    restart: unless-stopped
